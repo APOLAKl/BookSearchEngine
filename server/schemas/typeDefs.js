@@ -27,11 +27,24 @@ type Book {
     me: User
   }
 
+  input BookInput {
+    authors: [String]
+    description: String!
+    bookId: String!
+    image: String
+    link: String
+    title: String!
+  }
+
 
   type Mutation {
-    createUser: Auth
-    login: Auth
+    createUser(username: String!, email: String!, password: String!): Auth
+    login (username: String, email: String, password: String!): Auth
+    saveBook(bookToSave: BookInput ): User
+    deleteBook(bookId: String!): User
   }
+
+
 
 
 

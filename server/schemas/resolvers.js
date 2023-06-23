@@ -19,7 +19,11 @@ const resolvers = {
   },
   Mutation: {
     createUser: async function(parent, args, context) {
-      const user = await User.create(args);
+      const user = await User.create({
+        username: args.username,
+        email: args.email,
+        password: args.password
+      });
   
       if (!user) {
        throw new AuthenticationError("No user found!")
@@ -31,44 +35,43 @@ const resolvers = {
       }
     },
     login: async function(parent, args, context) {
-      const user = await User.findOne({ $or: [{ username: body.username }, { email: body.email }] });
+      const user = await User.findOne({ $or: [{ username: args.username }, { email: args.email }] });
       if (!user) {
-        return res.status(400).json({ message: "Can't find this user" });
+        throw new AuthenticationError("No user found!")
       }
   
-      const correctPw = await user.isCorrectPassword(body.password);
+      const correctPw = await user.isCorrectPassword(args.password);
   
       if (!correctPw) {
-        return res.status(400).json({ message: 'Wrong password!' });
+        throw new AuthenticationError("No user found!")
       }
       const token = signToken(user);
-      res.json({ token, user });
+      return({ token, user });
     },
-    // saveBook: async function({ user, body }, res) {
-    //   console.log(user);
-    //   try {
-    //     const updatedUser = await User.findOneAndUpdate(
-    //       { _id: user._id },
-    //       { $addToSet: { savedBooks: body } },
-    //       { new: true, runValidators: true }
-    //     );
-    //     return res.json(updatedUser);
-    //   } catch (err) {
-    //     console.log(err);
-    //     return res.status(400).json(err);
-    //   }
-    // },
-    // deleteBook: async function({ user, params }, res) {
-    //   const updatedUser = await User.findOneAndUpdate(
-    //     { _id: user._id },
-    //     { $pull: { savedBooks: { bookId: params.bookId } } },
-    //     { new: true }
-    //   );
-    //   if (!updatedUser) {
-    //     return res.status(404).json({ message: "Couldn't find user with this id!" });
-    //   }
-    //   return res.json(updatedUser);
-    // },
+    saveBook: async function(parent, args, context) {
+      try {
+        const updatedUser = await User.findOneAndUpdate(
+          { _id: context.user._id },
+          { $addToSet: { savedBooks: args.bookToSave } },
+          { new: true, runValidators: true }
+        );
+        return updatedUser;
+      } catch (err) {
+        console.log(err);
+        throw new AuthenticationError("No user found!")
+      }
+    },
+    deleteBook: async function(parent, args, context) {
+      const updatedUser = await User.findOneAndUpdate(
+        { _id: context.user._id },
+        { $pull: { savedBooks: { bookId: args.bookId } } },
+        { new: true }
+      );
+      if (!updatedUser) {
+        throw new AuthenticationError("No user found!")
+      }
+      return updatedUser;
+    },
   }
   
 }
